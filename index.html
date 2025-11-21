@@ -3,15 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mega Mall Food Decider v5</title>
+    <title>Mega Mall Food Decider v5.2</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #f4f7f6;
             --card-bg: #ffffff;
             --text-main: #2d3436;
-            --accent: #e84393; /* Pinkish for fun */
+            --accent: #e84393;
             --wheel-border: #ffffff;
+            --price-low: #00b894;
+            --price-mid: #0984e3;
+            --price-high: #6c5ce7;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -75,6 +78,7 @@
             align-items: center; margin-top: 15px; font-size: 0.85rem; color: #636e72; font-weight: 600;
         }
         #countBadge { background: #dfe6e9; padding: 5px 12px; border-radius: 20px; color: #2d3436; }
+        .reset-link { color: #e17055; cursor: pointer; text-decoration: underline; font-size: 0.8rem; margin-left: 10px; display: none; }
 
         .spin-btn {
             width: 100%; background: #2d3436; color: white; border: none;
@@ -140,23 +144,28 @@
         .tag { padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;}
         
         /* Tag Colors */
-        .tag.halal { background: #d4edda; color: #155724; } /* Green */
-        .tag.porkfree { background: #d1ecf1; color: #0c5460; } /* Blue */
-        .tag.nonhalal { background: #f8d7da; color: #721c24; } /* Red */
-        .tag.cat-jp { background: #fff3cd; color: #856404; } /* Yellow */
-        .tag.cat-wes { background: #e2e3e5; color: #383d41; } /* Grey */
-        .tag.cat-loc { background: #c3e6cb; color: #155724; } /* Greenish */
-
+        .tag.halal { background: #d4edda; color: #155724; }
+        .tag.nonhalal { background: #f8d7da; color: #721c24; }
+        .tag.price-low { background: #ddfbf5; color: #00b894; }
+        .tag.price-mid { background: #dff9fb; color: #0984e3; }
+        .tag.price-high { background: #a29bfe; color: white; }
+        
+        .btn-group { display: flex; gap: 10px; flex-direction: column; }
+        
         .btn-map {
             background: #4285F4; color: white; text-decoration: none;
-            padding: 14px 28px; border-radius: 50px; font-weight: 600;
-            display: inline-flex; align-items: center; gap: 10px; transition: 0.2s;
-            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3);
+            padding: 14px 0; border-radius: 50px; font-weight: 600;
+            display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3); width: 100%;
         }
         .btn-map:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4); }
         
-        .close-btn { display: block; width: 100%; margin-top: 20px; background: none; border: none; color: #b2bec3; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
-        .close-btn:hover { color: #2d3436; }
+        .close-btn { 
+            width: 100%; padding: 14px 0; background: #edf2f7; border: none; 
+            color: #2d3436; cursor: pointer; font-weight: 700; font-size: 0.95rem; 
+            border-radius: 50px; transition: 0.2s;
+        }
+        .close-btn:hover { background: #dfe6e9; }
 
         @media (max-width: 700px) {
             .wheel-wrapper { width: 300px; height: 300px; }
@@ -184,12 +193,12 @@
                     <label>Cuisine</label>
                     <select id="catFilter">
                         <option value="all">All Cuisines</option>
-                        <option value="local">🇲🇾 Malaysian / Local</option>
-                        <option value="japanese">🇯🇵 Japanese / Korean</option>
-                        <option value="chinese">🇨🇳 Chinese / Dim Sum</option>
-                        <option value="western">🍔 Western / Burger</option>
-                        <option value="beverage">☕ Coffee / Dessert</option>
-                        <option value="snack">🥨 Snacks / Light</option>
+                        <option value="local">🇲🇾 Local</option>
+                        <option value="japanese">🇯🇵 Japanese</option>
+                        <option value="chinese">🇨🇳 Chinese</option>
+                        <option value="western">🍔 Western</option>
+                        <option value="beverage">☕ Coffee/Dessert</option>
+                        <option value="snack">🥨 Snacks</option>
                     </select>
                 </div>
                 <div class="input-group" style="flex:1">
@@ -202,18 +211,32 @@
                 </div>
             </div>
 
-             <div class="input-group">
-                <label>Mall Location</label>
-                <select id="mallFilter">
-                    <option value="all">Both Malls</option>
-                    <option value="MV">Mid Valley Megamall</option>
-                    <option value="TG">The Gardens Mall</option>
-                </select>
+            <div class="filter-row">
+                <div class="input-group" style="flex:1">
+                    <label>Price Range</label>
+                    <select id="priceFilter">
+                        <option value="all">All Prices</option>
+                        <option value="low">$ (Budget &lt;RM25)</option>
+                        <option value="mid">$$ (Casual RM25-60)</option>
+                        <option value="high">$$$ (Premium &gt;RM60)</option>
+                    </select>
+                </div>
+                <div class="input-group" style="flex:1">
+                    <label>Location</label>
+                    <select id="mallFilter">
+                        <option value="all">Both Malls</option>
+                        <option value="MV">Mid Valley</option>
+                        <option value="TG">The Gardens</option>
+                    </select>
+                </div>
             </div>
 
             <div class="badge-row">
-                <span id="countBadge">Loading Data...</span>
-                <span>v5.0</span>
+                <div>
+                    <span id="countBadge">Loading...</span>
+                    <span class="reset-link" id="resetBtn" onclick="resetExclusions()">Reset Ignore List</span>
+                </div>
+                <span>v5.2</span>
             </div>
 
             <button class="spin-btn" id="spinBtn" onclick="spinWheel()">Find Food!</button>
@@ -237,257 +260,261 @@
             <div class="res-meta" id="resLoc">Location Info</div>
             <div class="tags" id="resTags"></div>
             
-            <a href="#" id="mapsLink" target="_blank" class="btn-map">
-                <span>Open Google Maps</span>
-            </a>
-            <button class="close-btn" onclick="closeModal()">Spin Again</button>
+            <div class="btn-group">
+                <a href="#" id="mapsLink" target="_blank" class="btn-map">
+                    <span>Open Google Maps</span>
+                </a>
+                <button class="close-btn" onclick="closeModalAndExclude()">Spin Again (Remove This)</button>
+            </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <script>
-        // --- DATASET V5: Categorized ---
-        // h: 'H' (Halal/Muslim Friendly), 'NH' (Non-Halal/Pork)
-        // c: 'local', 'western', 'japanese', 'chinese', 'beverage', 'snack'
+        // --- DATASET V5.2: ADDED PRICE CATEGORY ---
+        // p: '$' (Low), '$$' (Mid), '$$$' (High)
+        // h: 'H' (Halal/PorkFree), 'NH' (NonHalal)
         // m: 'MV' (Mid Valley), 'TG' (The Gardens)
         
         const masterData = [
-            // --- FAST FOOD / WESTERN / BURGERS ---
-            {n:"4Fingers Crispy Chicken", c:"western", h:"H", m:"MV"},
-            {n:"A&W", c:"western", h:"H", m:"MV"},
-            {n:"Burger King", c:"western", h:"H", m:"MV"},
-            {n:"Carl's Jr", c:"western", h:"H", m:"MV"},
-            {n:"KFC", c:"western", h:"H", m:"MV"},
-            {n:"McDonald's", c:"western", h:"H", m:"MV"},
-            {n:"Nando's", c:"western", h:"H", m:"MV"},
-            {n:"Subway", c:"western", h:"H", m:"MV"},
-            {n:"Texas Chicken", c:"western", h:"H", m:"MV"},
-            {n:"TGI Fridays", c:"western", h:"H", m:"MV"},
-            {n:"Chili's Grill & Bar", c:"western", h:"H", m:"MV"},
-            {n:"Pizza Hut", c:"western", h:"H", m:"MV"},
-            {n:"Rightside", c:"western", h:"H", m:"MV"},
-            {n:"The Barn", c:"western", h:"NH", m:"MV"}, 
-            {n:"Antipodean", c:"western", h:"NH", m:"MV"}, 
-            {n:"Red Kettle", c:"western", h:"H", m:"TG"},
-            {n:"Alexis", c:"western", h:"H", m:"TG"}, 
-            {n:"Spag & Ju's", c:"western", h:"H", m:"MV"},
-            {n:"The Manhattan Fish Market", c:"western", h:"H", m:"MV"},
-            {n:"Snitch By The Thieves", c:"western", h:"NH", m:"TG"},
-            {n:"myBurgerLab", c:"western", h:"H", m:"MV"}, // NEW
-            {n:"KGB - Killer Gourmet Burgers", c:"western", h:"H", m:"TG"}, // NEW
-            {n:"Stuff'd", c:"western", h:"H", m:"MV"}, // NEW
-            {n:"DOME Cafe", c:"western", h:"H", m:"TG"}, // NEW
-            {n:"Coliseum Cafe", c:"western", h:"H", m:"MV"}, // NEW
-            {n:"Padi House", c:"western", h:"H", m:"MV"}, // NEW
-            {n:"Tapestry", c:"western", h:"H", m:"MV"}, // NEW
-            {n:"The Fish Bowl", c:"western", h:"H", m:"TG"}, // NEW
-            {n:"Ben's", c:"western", h:"H", m:"TG"}, // NEW
-            {n:"Fat Daddy", c:"western", h:"H", m:"MV"}, // NEW
-            {n:"MARCO", c:"western", h:"H", m:"TG"}, // NEW
-            {n:"Shucked Oyster Bar", c:"western", h:"NH", m:"TG"}, // NEW
-            {n:"LingLing LongLong", c:"western", h:"NH", m:"TG"}, // NEW
-            {n:"MST Golf Arena", c:"western", h:"NH", m:"TG"}, // NEW
-            {n:"Kubis & Kale", c:"western", h:"H", m:"MV"}, // NEW
+            // FAST FOOD / WESTERN ($ / $$)
+            {n:"4Fingers", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"A&W", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"Burger King", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"Carl's Jr", c:"western", h:"H", m:"MV", p:"$$"},
+            {n:"KFC", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"McDonald's", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"Nando's", c:"western", h:"H", m:"MV", p:"$$"},
+            {n:"Subway", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"Texas Chicken", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"TGI Fridays", c:"western", h:"H", m:"MV", p:"$$"},
+            {n:"Chili's", c:"western", h:"H", m:"MV", p:"$$"},
+            {n:"Pizza Hut", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"Rightside", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"The Barn", c:"western", h:"NH", m:"MV", p:"$$"},
+            {n:"Antipodean", c:"western", h:"NH", m:"MV", p:"$$"},
+            {n:"Red Kettle", c:"western", h:"H", m:"TG", p:"$$"},
+            {n:"Alexis", c:"western", h:"H", m:"TG", p:"$$"},
+            {n:"Spag & Ju's", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"Manhattan Fish", c:"western", h:"H", m:"MV", p:"$$"},
+            {n:"Snitch", c:"western", h:"NH", m:"TG", p:"$$"},
+            {n:"myBurgerLab", c:"western", h:"H", m:"MV", p:"$$"},
+            {n:"KGB Burgers", c:"western", h:"H", m:"TG", p:"$$"},
+            {n:"Stuff'd", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"DOME Cafe", c:"western", h:"H", m:"TG", p:"$$"},
+            {n:"Coliseum Cafe", c:"western", h:"H", m:"MV", p:"$$"},
+            {n:"Padi House", c:"western", h:"H", m:"MV", p:"$$"},
+            {n:"Tapestry", c:"western", h:"H", m:"MV", p:"$$"},
+            {n:"The Fish Bowl", c:"western", h:"H", m:"TG", p:"$$"},
+            {n:"Ben's", c:"western", h:"H", m:"TG", p:"$$"},
+            {n:"Fat Daddy", c:"western", h:"H", m:"MV", p:"$"},
+            {n:"MARCO", c:"western", h:"H", m:"TG", p:"$$"},
+            {n:"Shucked Oyster", c:"western", h:"NH", m:"TG", p:"$$$"},
+            {n:"LingLing LongLong", c:"western", h:"NH", m:"TG", p:"$$"},
+            {n:"MST Golf Arena", c:"western", h:"NH", m:"TG", p:"$$"},
+            {n:"Kubis & Kale", c:"western", h:"H", m:"MV", p:"$$"},
 
-            // --- JAPANESE / KOREAN ---
-            {n:"Sukiya", c:"japanese", h:"H", m:"MV"},
-            {n:"Sushi King", c:"japanese", h:"H", m:"MV"},
-            {n:"Sushi Jiro", c:"japanese", h:"H", m:"MV"},
-            {n:"Sushi Zanmai", c:"japanese", h:"H", m:"MV"},
-            {n:"Genki Sushi", c:"japanese", h:"H", m:"TG"},
-            {n:"Rakuzen", c:"japanese", h:"H", m:"TG"},
-            {n:"Yuzu Japanese", c:"japanese", h:"H", m:"TG"},
-            {n:"Kiku-Zakura", c:"japanese", h:"H", m:"MV"},
-            {n:"Shinmapo Korean BBQ", c:"japanese", h:"NH", m:"TG"},
-            {n:"Palsaik Korean BBQ", c:"japanese", h:"NH", m:"MV"},
-            {n:"KyoChon 1991", c:"japanese", h:"H", m:"MV"},
-            {n:"DubuYo", c:"japanese", h:"H", m:"MV"},
-            {n:"MyeongDong Topokki", c:"japanese", h:"H", m:"MV"},
-            {n:"Ra-Men Bankara", c:"japanese", h:"NH", m:"MV"},
-            {n:"Ippudo Ramen", c:"japanese", h:"NH", m:"TG"},
-            {n:"Wagyu More", c:"japanese", h:"NH", m:"TG"},
-            {n:"Tanba Japanese BBQ", c:"japanese", h:"NH", m:"TG"},
-            {n:"BUSHIDO Yakitori", c:"japanese", h:"NH", m:"MV"},
-            {n:"Empire Sushi", c:"japanese", h:"H", m:"MV"},
-            {n:"Hotpot Kitchen", c:"japanese", h:"NH", m:"MV"},
-            {n:"Mala Mini Hotpot", c:"japanese", h:"H", m:"MV"},
-            {n:"Yayoi", c:"japanese", h:"NH", m:"TG"},
-            {n:"YewYewKL / Mogu", c:"japanese", h:"H", m:"TG"},
-            {n:"BBQ Town", c:"japanese", h:"H", m:"MV"}, // NEW
-            {n:"Kamakura", c:"japanese", h:"H", m:"TG"}, // NEW
-            {n:"Tamago-EN", c:"japanese", h:"NH", m:"TG"}, // NEW
-            {n:"Shojikiya", c:"japanese", h:"H", m:"MV"}, // NEW
-            {n:"SUSHIHAN", c:"japanese", h:"H", m:"MV"}, // NEW
-            {n:"Hojo", c:"japanese", h:"H", m:"TG"}, // NEW
-            {n:"ROCKU Yakiniku", c:"japanese", h:"NH", m:"TG"}, // NEW
-            {n:"eMart24", c:"japanese", h:"H", m:"MV"}, // NEW (Korean Mart/Food)
-            {n:"Ko Hyang", c:"japanese", h:"H", m:"TG"}, // NEW
+            // JAPANESE / KOREAN
+            {n:"Sukiya", c:"japanese", h:"H", m:"MV", p:"$"},
+            {n:"Sushi King", c:"japanese", h:"H", m:"MV", p:"$"},
+            {n:"Sushi Jiro", c:"japanese", h:"H", m:"MV", p:"$"},
+            {n:"Sushi Zanmai", c:"japanese", h:"H", m:"MV", p:"$$"},
+            {n:"Genki Sushi", c:"japanese", h:"H", m:"TG", p:"$$"},
+            {n:"Rakuzen", c:"japanese", h:"H", m:"TG", p:"$$"},
+            {n:"Yuzu Japanese", c:"japanese", h:"H", m:"TG", p:"$$$"},
+            {n:"Kiku-Zakura", c:"japanese", h:"H", m:"MV", p:"$$"},
+            {n:"Shinmapo BBQ", c:"japanese", h:"NH", m:"TG", p:"$$$"},
+            {n:"Palsaik BBQ", c:"japanese", h:"NH", m:"MV", p:"$$"},
+            {n:"KyoChon 1991", c:"japanese", h:"H", m:"MV", p:"$$"},
+            {n:"DubuYo", c:"japanese", h:"H", m:"MV", p:"$"},
+            {n:"MyeongDong", c:"japanese", h:"H", m:"MV", p:"$"},
+            {n:"Ra-Men Bankara", c:"japanese", h:"NH", m:"MV", p:"$$"},
+            {n:"Ippudo Ramen", c:"japanese", h:"NH", m:"TG", p:"$$"},
+            {n:"Wagyu More", c:"japanese", h:"NH", m:"TG", p:"$$$"},
+            {n:"Tanba BBQ", c:"japanese", h:"NH", m:"TG", p:"$$$"},
+            {n:"BUSHIDO", c:"japanese", h:"NH", m:"MV", p:"$$"},
+            {n:"Empire Sushi", c:"japanese", h:"H", m:"MV", p:"$"},
+            {n:"Hotpot Kitchen", c:"japanese", h:"NH", m:"MV", p:"$$"},
+            {n:"Mala Mini Hotpot", c:"japanese", h:"H", m:"MV", p:"$"},
+            {n:"Yayoi", c:"japanese", h:"NH", m:"TG", p:"$$"},
+            {n:"YewYewKL", c:"japanese", h:"H", m:"TG", p:"$"},
+            {n:"BBQ Town", c:"japanese", h:"H", m:"MV", p:"$$"},
+            {n:"Kamakura", c:"japanese", h:"H", m:"TG", p:"$$"},
+            {n:"Tamago-EN", c:"japanese", h:"NH", m:"TG", p:"$$"},
+            {n:"Shojikiya", c:"japanese", h:"H", m:"MV", p:"$"},
+            {n:"SUSHIHAN", c:"japanese", h:"H", m:"MV", p:"$$"},
+            {n:"Hojo", c:"japanese", h:"H", m:"TG", p:"$$"},
+            {n:"ROCKU Yakiniku", c:"japanese", h:"NH", m:"TG", p:"$$"},
+            {n:"eMart24", c:"japanese", h:"H", m:"MV", p:"$"},
+            {n:"Ko Hyang", c:"japanese", h:"H", m:"TG", p:"$$"},
 
-            // --- CHINESE / DIM SUM / HOTPOT ---
-            {n:"Din Tai Fung", c:"chinese", h:"NH", m:"TG"},
-            {n:"Dragon-i", c:"chinese", h:"NH", m:"TG"},
-            {n:"Canton-i", c:"chinese", h:"NH", m:"TG"},
-            {n:"The Han Room", c:"chinese", h:"NH", m:"TG"},
-            {n:"Paradise Dynasty", c:"chinese", h:"NH", m:"TG"},
-            {n:"Putien", c:"chinese", h:"NH", m:"TG"},
-            {n:"Xiao Long Kan Hotpot", c:"chinese", h:"NH", m:"MV"},
-            {n:"Go Noodle House", c:"chinese", h:"NH", m:"MV"},
-            {n:"Zok Noodle House", c:"chinese", h:"NH", m:"MV"},
-            {n:"Sin Man Kee", c:"chinese", h:"NH", m:"MV"},
-            {n:"Mak's Chee Wonton", c:"chinese", h:"NH", m:"MV"},
-            {n:"Koong Woh Tong", c:"chinese", h:"H", m:"MV"},
-            {n:"Purple Cane Tea Cuisine", c:"chinese", h:"H", m:"TG"},
-            {n:"Souper Tang", c:"chinese", h:"H", m:"MV"},
-            {n:"ManJoe Taiwanese", c:"chinese", h:"H", m:"TG"},
-            {n:"Jipinhe Scones", c:"chinese", h:"H", m:"MV"},
-            {n:"Sek Tong", c:"chinese", h:"NH", m:"MV"},
-            {n:"Omega Pork Noodle", c:"chinese", h:"NH", m:"MV"}, // NEW
-            {n:"House of Pok", c:"chinese", h:"NH", m:"MV"}, // NEW
-            {n:"Lucky Mala Noodle", c:"chinese", h:"NH", m:"MV"}, // NEW
-            {n:"Pulau Ketam Yong Tau Foo", c:"chinese", h:"NH", m:"MV"}, // NEW
-            {n:"Fong Lye", c:"chinese", h:"NH", m:"TG"}, // NEW
-            {n:"Beauty In The Pot", c:"chinese", h:"NH", m:"TG"}, // NEW
-            {n:"Chicken Claypot House", c:"chinese", h:"NH", m:"MV"}, // NEW
-            {n:"Village Roast Duck", c:"chinese", h:"NH", m:"TG"}, // NEW
-            {n:"YU By Oriental", c:"chinese", h:"NH", m:"TG"}, // NEW
-            {n:"Grand Taipei", c:"chinese", h:"NH", m:"MV"}, // NEW
-            {n:"Peng Chu", c:"chinese", h:"NH", m:"MV"}, // NEW
-            {n:"The Travelling Duck", c:"chinese", h:"NH", m:"TG"}, // NEW
+            // CHINESE / DIM SUM
+            {n:"Din Tai Fung", c:"chinese", h:"NH", m:"TG", p:"$$"},
+            {n:"Dragon-i", c:"chinese", h:"NH", m:"TG", p:"$$"},
+            {n:"Canton-i", c:"chinese", h:"NH", m:"TG", p:"$$"},
+            {n:"The Han Room", c:"chinese", h:"NH", m:"TG", p:"$$$"},
+            {n:"Paradise Dynasty", c:"chinese", h:"NH", m:"TG", p:"$$"},
+            {n:"Putien", c:"chinese", h:"NH", m:"TG", p:"$$"},
+            {n:"Xiao Long Kan", c:"chinese", h:"NH", m:"MV", p:"$$$"},
+            {n:"Go Noodle House", c:"chinese", h:"NH", m:"MV", p:"$$"},
+            {n:"Zok Noodle", c:"chinese", h:"NH", m:"MV", p:"$"},
+            {n:"Sin Man Kee", c:"chinese", h:"NH", m:"MV", p:"$"},
+            {n:"Mak's Chee", c:"chinese", h:"NH", m:"MV", p:"$$"},
+            {n:"Koong Woh Tong", c:"chinese", h:"H", m:"MV", p:"$"},
+            {n:"Purple Cane", c:"chinese", h:"H", m:"TG", p:"$$"},
+            {n:"Souper Tang", c:"chinese", h:"H", m:"MV", p:"$$"},
+            {n:"ManJoe", c:"chinese", h:"H", m:"TG", p:"$"},
+            {n:"Jipinhe Scones", c:"chinese", h:"H", m:"MV", p:"$"},
+            {n:"Sek Tong", c:"chinese", h:"NH", m:"MV", p:"$"},
+            {n:"Omega Pork Noodle", c:"chinese", h:"NH", m:"MV", p:"$"},
+            {n:"House of Pok", c:"chinese", h:"NH", m:"MV", p:"$$"},
+            {n:"Lucky Mala", c:"chinese", h:"NH", m:"MV", p:"$"},
+            {n:"Pulau Ketam YTF", c:"chinese", h:"NH", m:"MV", p:"$"},
+            {n:"Fong Lye", c:"chinese", h:"NH", m:"TG", p:"$$"},
+            {n:"Beauty In Pot", c:"chinese", h:"NH", m:"TG", p:"$$$"},
+            {n:"Claypot House", c:"chinese", h:"NH", m:"MV", p:"$$"},
+            {n:"Village Roast Duck", c:"chinese", h:"NH", m:"TG", p:"$$"},
+            {n:"YU By Oriental", c:"chinese", h:"NH", m:"TG", p:"$$$"},
+            {n:"Grand Taipei", c:"chinese", h:"NH", m:"MV", p:"$$"},
+            {n:"Peng Chu", c:"chinese", h:"NH", m:"MV", p:"$$"},
+            {n:"Travelling Duck", c:"chinese", h:"NH", m:"TG", p:"$$"},
 
-            // --- MALAYSIAN / LOCAL / THAI / VIET ---
-            {n:"Ah Cheng Laksa", c:"local", h:"H", m:"MV"},
-            {n:"Ali, Muthu & Ah Hock", c:"local", h:"H", m:"MV"},
-            {n:"Bungkus Kaw Kaw", c:"local", h:"H", m:"TG"},
-            {n:"Madam Kwan's", c:"local", h:"H", m:"MV"},
-            {n:"Little Penang Kafe", c:"local", h:"H", m:"MV"},
-            {n:"Sepiring", c:"local", h:"H", m:"MV"},
-            {n:"NALE The Nasi Lemak", c:"local", h:"H", m:"MV"},
-            {n:"Nasi Lemak Shop", c:"local", h:"H", m:"MV"},
-            {n:"Oriental Kopi", c:"local", h:"H", m:"MV"},
-            {n:"Original Penang Kayu", c:"local", h:"H", m:"MV"},
-            {n:"PappaRich", c:"local", h:"H", m:"TG"},
-            {n:"Sedap Sedap", c:"local", h:"H", m:"MV"},
-            {n:"The Chicken Rice Shop", c:"local", h:"H", m:"MV"},
-            {n:"UPEH", c:"local", h:"H", m:"MV"},
-            {n:"MyIpoh", c:"local", h:"H", m:"MV"},
-            {n:"Nanyang Cafe", c:"local", h:"NH", m:"MV"},
-            {n:"Kim Gary", c:"local", h:"NH", m:"MV"},
-            {n:"Lim Fried Chicken", c:"local", h:"H", m:"MV"},
-            {n:"Penang Flavours", c:"local", h:"H", m:"MV"},
-            {n:"Absolute Thai", c:"local", h:"H", m:"TG"},
-            {n:"Amarin Heavenly Thai", c:"local", h:"H", m:"MV"},
-            {n:"Mr Tuk Tuk", c:"local", h:"H", m:"TG"},
-            {n:"Boat Noodle", c:"local", h:"H", m:"MV"},
-            {n:"Pho Vietz", c:"local", h:"NH", m:"MV"},
-            {n:"An Viet", c:"local", h:"NH", m:"TG"},
-            {n:"Childhood", c:"local", h:"H", m:"MV"}, // NEW
-            {n:"Rich Kopitiam", c:"local", h:"H", m:"MV"}, // NEW
-            {n:"BananaBro", c:"local", h:"H", m:"MV"}, // NEW
-            {n:"Nyonya Colors", c:"local", h:"H", m:"TG"}, // NEW
-            {n:"PopCorn Food Hall", c:"local", h:"H", m:"MV"}, // NEW
+            // LOCAL / THAI
+            {n:"Ah Cheng Laksa", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"Ali, Muthu & Ah Hock", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"Bungkus Kaw Kaw", c:"local", h:"H", m:"TG", p:"$"},
+            {n:"Madam Kwan's", c:"local", h:"H", m:"MV", p:"$$"},
+            {n:"Little Penang", c:"local", h:"H", m:"MV", p:"$$"},
+            {n:"Sepiring", c:"local", h:"H", m:"MV", p:"$$"},
+            {n:"NALE Nasi Lemak", c:"local", h:"H", m:"MV", p:"$$"},
+            {n:"Nasi Lemak Shop", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"Oriental Kopi", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"Original Penang Kayu", c:"local", h:"H", m:"MV", p:"$$"},
+            {n:"PappaRich", c:"local", h:"H", m:"TG", p:"$$"},
+            {n:"Sedap Sedap", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"Chicken Rice Shop", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"UPEH", c:"local", h:"H", m:"MV", p:"$$"},
+            {n:"MyIpoh", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"Nanyang Cafe", c:"local", h:"NH", m:"MV", p:"$$"},
+            {n:"Kim Gary", c:"local", h:"NH", m:"MV", p:"$$"},
+            {n:"Lim Fried Chicken", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"Penang Flavours", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"Absolute Thai", c:"local", h:"H", m:"TG", p:"$$"},
+            {n:"Amarin Thai", c:"local", h:"H", m:"MV", p:"$$"},
+            {n:"Mr Tuk Tuk", c:"local", h:"H", m:"TG", p:"$$"},
+            {n:"Boat Noodle", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"Pho Vietz", c:"local", h:"NH", m:"MV", p:"$$"},
+            {n:"An Viet", c:"local", h:"NH", m:"TG", p:"$$"},
+            {n:"Childhood", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"Rich Kopitiam", c:"local", h:"H", m:"MV", p:"$"},
+            {n:"BananaBro", c:"local", h:"H", m:"MV", p:"$$"},
+            {n:"Nyonya Colors", c:"local", h:"H", m:"TG", p:"$"},
+            {n:"PopCorn Food Hall", c:"local", h:"H", m:"MV", p:"$"},
 
-            // --- COFFEE / DESSERT / BEVERAGE ---
-            {n:"Starbucks Reserve", c:"beverage", h:"H", m:"TG"},
-            {n:"Coffee Bean & Tea Leaf", c:"beverage", h:"H", m:"MV"},
-            {n:"ZUS Coffee", c:"beverage", h:"H", m:"MV"},
-            {n:"GIGI Coffee", c:"beverage", h:"H", m:"MV"},
-            {n:"HWC Coffee", c:"beverage", h:"H", m:"MV"},
-            {n:"Kenangan Coffee", c:"beverage", h:"H", m:"MV"},
-            {n:"San Francisco Coffee", c:"beverage", h:"H", m:"TG"},
-            {n:"Tealive Plus", c:"beverage", h:"H", m:"MV"},
-            {n:"Gong Cha", c:"beverage", h:"H", m:"TG"},
-            {n:"KOI The", c:"beverage", h:"H", m:"TG"},
-            {n:"Chagee", c:"beverage", h:"H", m:"TG"},
-            {n:"Boost Juice", c:"beverage", h:"H", m:"MV"},
-            {n:"Llaollao", c:"beverage", h:"H", m:"MV"},
-            {n:"Baskin Robbins", c:"beverage", h:"H", m:"MV"},
-            {n:"Haagen Dazs", c:"beverage", h:"H", m:"MV"},
-            {n:"Inside Scoop", c:"beverage", h:"H", m:"TG"},
-            {n:"Secret Recipe", c:"beverage", h:"H", m:"MV"},
-            {n:"Paris Baguette", c:"beverage", h:"H", m:"MV"},
-            {n:"Komugi", c:"beverage", h:"H", m:"MV"},
-            {n:"Lavender", c:"beverage", h:"H", m:"MV"},
-            {n:"BreadStory", c:"beverage", h:"H", m:"TG"},
-            {n:"Christine's Bakery", c:"beverage", h:"H", m:"MV"},
-            {n:"Halla Holla", c:"beverage", h:"H", m:"MV"},
-            {n:"Yole", c:"beverage", h:"H", m:"MV"},
-            {n:"Soyya", c:"beverage", h:"H", m:"MV"},
-            {n:"Bean Factory", c:"beverage", h:"H", m:"MV"},
-            {n:"Cha Tra Mue", c:"beverage", h:"H", m:"MV"},
-            {n:"Beutea", c:"beverage", h:"H", m:"MV"},
-            {n:"Machi Machi", c:"beverage", h:"H", m:"TG"},
-            {n:"HEYTEA", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Chateraise", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Venchi", c:"beverage", h:"H", m:"TG"}, // NEW
-            {n:"Nadeje", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Snowflake", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Creme de la Creme", c:"beverage", h:"H", m:"TG"}, // NEW
-            {n:"Udders Ice Cream", c:"beverage", h:"NH", m:"TG"}, // NEW (Alcoholic flavors)
-            {n:"Juice Works", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"HeLo Moo!", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Shantea", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Squeezby", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Just Good Coffee", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Eight Ounce Coffee", c:"beverage", h:"H", m:"TG"}, // NEW
-            {n:"Nespresso", c:"beverage", h:"H", m:"TG"}, // NEW
-            {n:"TWG Tea", c:"beverage", h:"H", m:"TG"}, // NEW
-            {n:"Yomie's Rice Yogurt", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Sugirl Desserts", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Vanilla Mille Crepe", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Lapisan Patisserie", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"POBBYICE", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Yogurt Factory", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Nononsense Coffee", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"B.O.D", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"dipndip", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"Lung Ngen Coffee", c:"beverage", h:"H", m:"MV"}, // NEW
-            {n:"ShuYi Grass Jelly", c:"beverage", h:"H", m:"MV"}, // NEW
+            // BEVERAGE / DESSERT
+            {n:"Starbucks Reserve", c:"beverage", h:"H", m:"TG", p:"$$"},
+            {n:"Coffee Bean", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"ZUS Coffee", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"GIGI Coffee", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"HWC Coffee", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Kenangan Coffee", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"San Francisco", c:"beverage", h:"H", m:"TG", p:"$$"},
+            {n:"Tealive Plus", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Gong Cha", c:"beverage", h:"H", m:"TG", p:"$"},
+            {n:"KOI The", c:"beverage", h:"H", m:"TG", p:"$"},
+            {n:"Chagee", c:"beverage", h:"H", m:"TG", p:"$"},
+            {n:"Boost Juice", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Llaollao", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Baskin Robbins", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Haagen Dazs", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"Inside Scoop", c:"beverage", h:"H", m:"TG", p:"$$"},
+            {n:"Secret Recipe", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"Paris Baguette", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"Komugi", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Lavender", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"BreadStory", c:"beverage", h:"H", m:"TG", p:"$"},
+            {n:"Christine's Bakery", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"Halla Holla", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Yole", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Soyya", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Bean Factory", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Cha Tra Mue", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Beutea", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Machi Machi", c:"beverage", h:"H", m:"TG", p:"$$"},
+            {n:"HEYTEA", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"Chateraise", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Venchi", c:"beverage", h:"H", m:"TG", p:"$$"},
+            {n:"Nadeje", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"Snowflake", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Creme de la Creme", c:"beverage", h:"H", m:"TG", p:"$$"},
+            {n:"Udders Ice Cream", c:"beverage", h:"NH", m:"TG", p:"$$"},
+            {n:"Juice Works", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"HeLo Moo!", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Shantea", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Squeezby", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Just Good Coffee", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"Eight Ounce", c:"beverage", h:"H", m:"TG", p:"$$"},
+            {n:"Nespresso", c:"beverage", h:"H", m:"TG", p:"$"},
+            {n:"TWG Tea", c:"beverage", h:"H", m:"TG", p:"$$$"},
+            {n:"Yomie's Yogurt", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Sugirl Desserts", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Vanilla Mille Crepe", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"Lapisan Patisserie", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"POBBYICE", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Yogurt Factory", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"Nononsense Coffee", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"B.O.D", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"dipndip", c:"beverage", h:"H", m:"MV", p:"$$"},
+            {n:"Lung Ngen Coffee", c:"beverage", h:"H", m:"MV", p:"$"},
+            {n:"ShuYi Grass Jelly", c:"beverage", h:"H", m:"MV", p:"$"},
             
-            // --- SNACKS / BAKERY ---
-            {n:"Auntie Anne's", c:"snack", h:"H", m:"MV"},
-            {n:"Famous Amos", c:"snack", h:"H", m:"MV"},
-            {n:"Hot & Roll", c:"snack", h:"H", m:"MV"},
-            {n:"Shihlin Taiwan Snacks", c:"snack", h:"H", m:"MV"},
-            {n:"Eggette Lab", c:"snack", h:"H", m:"MV"},
-            {n:"Garrett Popcorn", c:"snack", h:"H", m:"MV"},
-            {n:"Ipoh Kacang Putih", c:"snack", h:"H", m:"MV"},
-            {n:"Mahnaz Food", c:"snack", h:"H", m:"MV"},
-            {n:"Oloiya", c:"snack", h:"NH", m:"TG"},
-            {n:"Bee Cheng Hiang", c:"snack", h:"NH", m:"MV"},
-            {n:"I Love Yoo!", c:"snack", h:"H", m:"MV"},
-            {n:"Dunkin'", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Cinnabon", c:"snack", h:"H", m:"TG"}, // NEW
-            {n:"Beard Papa's", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Ben's Cookies", c:"snack", h:"H", m:"TG"}, // NEW
-            {n:"Barcook", c:"snack", h:"H", m:"TG"}, // NEW
-            {n:"Flaaah The Bakery", c:"snack", h:"H", m:"TG"}, // NEW
-            {n:"Yin's Sourdough", c:"snack", h:"H", m:"TG"}, // NEW
-            {n:"The Founders Bakery", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Finest Bake", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Good Chen", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Jungle House", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Herbal Farmer", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Taimal Herbs", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"MBG FruitShop", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Yong Sheng", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Signature Market", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"MiX Store", c:"snack", h:"NH", m:"MV"}, // NEW (Imported snacks/alcohol)
-            {n:"Beryl's", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Royce Chocolate", c:"snack", h:"H", m:"TG"}, // NEW
-            {n:"Laderach", c:"snack", h:"H", m:"TG"}, // NEW
-            {n:"Homi Curry Puff", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Chonky Cookies", c:"snack", h:"H", m:"TG"}, // NEW
-            {n:"APOLLO", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Happy Potato", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Sisters Crispy Popiah", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Krispy Kreme", c:"snack", h:"H", m:"MV"}, // NEW
-            {n:"Delectable Treats", c:"snack", h:"H", m:"TG"} // NEW
+            // SNACKS
+            {n:"Auntie Anne's", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Famous Amos", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Hot & Roll", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Shihlin Snacks", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Eggette Lab", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Garrett Popcorn", c:"snack", h:"H", m:"MV", p:"$$"},
+            {n:"Ipoh Kacang Putih", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Mahnaz Food", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Oloiya", c:"snack", h:"NH", m:"TG", p:"$$"},
+            {n:"Bee Cheng Hiang", c:"snack", h:"NH", m:"MV", p:"$$"},
+            {n:"I Love Yoo!", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Dunkin'", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Cinnabon", c:"snack", h:"H", m:"TG", p:"$"},
+            {n:"Beard Papa's", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Ben's Cookies", c:"snack", h:"H", m:"TG", p:"$"},
+            {n:"Barcook", c:"snack", h:"H", m:"TG", p:"$"},
+            {n:"Flaaah Bakery", c:"snack", h:"H", m:"TG", p:"$"},
+            {n:"Yin's Sourdough", c:"snack", h:"H", m:"TG", p:"$$"},
+            {n:"Founders Bakery", c:"snack", h:"H", m:"MV", p:"$$"},
+            {n:"Finest Bake", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Good Chen", c:"snack", h:"H", m:"MV", p:"$$"},
+            {n:"Jungle House", c:"snack", h:"H", m:"MV", p:"$$"},
+            {n:"Herbal Farmer", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Taimal Herbs", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"MBG FruitShop", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Yong Sheng", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Signature Market", c:"snack", h:"H", m:"MV", p:"$$"},
+            {n:"MiX Store", c:"snack", h:"NH", m:"MV", p:"$"},
+            {n:"Beryl's", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Royce Chocolate", c:"snack", h:"H", m:"TG", p:"$$"},
+            {n:"Laderach", c:"snack", h:"H", m:"TG", p:"$$"},
+            {n:"Homi Curry Puff", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Chonky Cookies", c:"snack", h:"H", m:"TG", p:"$"},
+            {n:"APOLLO", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Happy Potato", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Sisters Popiah", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Krispy Kreme", c:"snack", h:"H", m:"MV", p:"$"},
+            {n:"Delectable Treats", c:"snack", h:"H", m:"TG", p:"$$"}
         ];
 
         let activeData = [];
+        let excludedItems = []; // Stores names of items to exclude
         let rotation = 0;
         let isSpinning = false;
+        let currentWinnerName = ""; // To store current spin result
         const canvas = document.getElementById('wheelCanvas');
         const ctx = canvas.getContext('2d');
         const colors = ['#a29bfe', '#ff7675', '#55efc4', '#74b9ff', '#ffeaa7', '#fab1a0'];
@@ -495,7 +522,7 @@
         function init() {
             filterData();
             // Event Listeners
-            ['searchInput', 'catFilter', 'dietFilter', 'mallFilter'].forEach(id => {
+            ['searchInput', 'catFilter', 'dietFilter', 'mallFilter', 'priceFilter'].forEach(id => {
                 document.getElementById(id).addEventListener('input', filterData);
             });
             window.addEventListener('resize', () => drawWheel());
@@ -506,20 +533,28 @@
             const cat = document.getElementById('catFilter').value;
             const diet = document.getElementById('dietFilter').value;
             const mall = document.getElementById('mallFilter').value;
+            const price = document.getElementById('priceFilter').value;
 
             activeData = masterData.filter(item => {
-                // Search
+                // 1. Check Exclusion List
+                if (excludedItems.includes(item.n)) return false;
+
+                // 2. Search
                 if (search && !item.n.toLowerCase().includes(search)) return false;
                 
-                // Category
+                // 3. Category
                 if (cat !== 'all' && item.c !== cat) return false;
                 
-                // Mall
+                // 4. Mall
                 if (mall !== 'all' && item.m !== mall) return false;
                 
-                // Diet
+                // 5. Price
+                if (price === 'low' && item.p !== '$') return false;
+                if (price === 'mid' && item.p !== '$$') return false;
+                if (price === 'high' && item.p !== '$$$') return false;
+                
+                // 6. Diet
                 if (diet === 'halal') {
-                    // Show Halal AND Pork Free
                     if (item.h === 'NH') return false;
                 }
                 if (diet === 'nonhalal') {
@@ -536,12 +571,21 @@
             const count = activeData.length;
             const badge = document.getElementById('countBadge');
             const btn = document.getElementById('spinBtn');
+            const resetBtn = document.getElementById('resetBtn');
 
-            badge.innerText = `${count} Places`;
+            // Update Badge Logic
+            if (excludedItems.length > 0) {
+                badge.innerText = `${count} Options (${excludedItems.length} Hidden)`;
+                resetBtn.style.display = "inline";
+            } else {
+                badge.innerText = `${count} Options`;
+                resetBtn.style.display = "none";
+            }
             
+            // Update Button Logic
             if (count === 0) {
                 btn.disabled = true;
-                btn.innerText = "No Matches";
+                btn.innerText = excludedItems.length > 0 ? "All Ignored / No Match" : "No Matches";
                 btn.style.background = "#b2bec3";
                 drawWheel(true);
             } else {
@@ -550,6 +594,11 @@
                 btn.style.background = "#2d3436";
                 drawWheel();
             }
+        }
+
+        function resetExclusions() {
+            excludedItems = [];
+            filterData();
         }
 
         function drawWheel(isEmpty = false) {
@@ -610,25 +659,28 @@
         function showResult(deg) {
             const sliceDeg = 360 / activeData.length;
             const normalized = deg % 360;
-            // Adjust for top pointer (which is at 270deg visually)
-            // In CSS transform rotate(0), the 0 angle is at 3 o'clock.
-            // 270 (-90) is 12 o'clock.
-            const offset = (360 - normalized + 270) % 360; // Adjusted offset logic
-            // Actually, easiest way is: Index 0 is at 0-arc.
             const index = Math.floor((360 - (normalized % 360)) / sliceDeg) % activeData.length;
 
             const winner = activeData[index];
+            currentWinnerName = winner.n; // Save for removal
             
             // Populate Modal
             document.getElementById('resName').innerText = winner.n;
             
-            // Mall Text
             let mallName = winner.m === 'MV' ? 'Mid Valley Megamall' : 'The Gardens Mall';
             document.getElementById('resLoc').innerText = mallName;
 
             // Tags
             const tagBox = document.getElementById('resTags');
             tagBox.innerHTML = '';
+
+            // Price Tag
+            const tP = document.createElement('span');
+            tP.className = 'tag';
+            if (winner.p === '$') { tP.classList.add('price-low'); tP.innerText = "$ Budget"; }
+            else if (winner.p === '$$') { tP.classList.add('price-mid'); tP.innerText = "$$ Casual"; }
+            else { tP.classList.add('price-high'); tP.innerText = "$$$ Premium"; }
+            tagBox.appendChild(tP);
 
             // Diet Tag
             const t1 = document.createElement('span');
@@ -645,10 +697,10 @@
             // Cuisine Tag
             const t2 = document.createElement('span');
             t2.className = 'tag';
-            if(winner.c === 'japanese') { t2.classList.add('cat-jp'); t2.innerText = "Japanese / Korean"; }
+            if(winner.c === 'japanese') { t2.classList.add('cat-jp'); t2.innerText = "Japanese"; }
             else if(winner.c === 'western') { t2.classList.add('cat-wes'); t2.innerText = "Western"; }
-            else if(winner.c === 'local') { t2.classList.add('cat-loc'); t2.innerText = "Malaysian"; }
-            else if(winner.c === 'chinese') { t2.classList.add('cat-jp'); t2.innerText = "Chinese"; } // re-use style
+            else if(winner.c === 'local') { t2.classList.add('cat-loc'); t2.innerText = "Local"; }
+            else if(winner.c === 'chinese') { t2.classList.add('cat-jp'); t2.innerText = "Chinese"; }
             else { t2.style.background='#dfe6e9'; t2.innerText = winner.c.toUpperCase(); }
             tagBox.appendChild(t2);
 
@@ -661,8 +713,16 @@
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         }
 
-        function closeModal() {
+        function closeModalAndExclude() {
+            // Add current winner to excluded list
+            if(currentWinnerName) {
+                excludedItems.push(currentWinnerName);
+            }
+            
             document.getElementById('resultModal').classList.remove('active');
+            
+            // Re-run filter to update wheel without the winner
+            filterData();
         }
 
         init();
