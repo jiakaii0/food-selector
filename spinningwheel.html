@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mega Mall Food Decider v5</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #2d3436;
+            --accent: #e84393; /* Pinkish for fun */
+            --wheel-border: #ffffff;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        /* HEADER */
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 1.8rem; color: #2d3436; font-weight: 900; letter-spacing: -1px; }
+        .subtitle { font-size: 0.85rem; color: #636e72; margin-top: 5px; font-weight: 500; }
+
+        /* LAYOUT */
+        .app-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* CONTROLS (LEFT) */
+        .control-panel {
+            flex: 1;
+            min-width: 320px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 24px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .input-group { margin-bottom: 15px; }
+        .input-group label {
+            display: block; font-size: 0.7rem; font-weight: 800; 
+            color: #b2bec3; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        select, input {
+            width: 100%; padding: 14px; border: 2px solid #edf2f7;
+            border-radius: 12px; font-size: 0.95rem; background: #f8fafc;
+            color: #2d3436; font-weight: 600; transition: 0.2s; appearance: none;
+        }
+        select:focus, input:focus { border-color: var(--accent); outline: none; background: #fff; }
+
+        .filter-row { display: flex; gap: 10px; }
+
+        .badge-row {
+            display: flex; justify-content: space-between; 
+            align-items: center; margin-top: 15px; font-size: 0.85rem; color: #636e72; font-weight: 600;
+        }
+        #countBadge { background: #dfe6e9; padding: 5px 12px; border-radius: 20px; color: #2d3436; }
+
+        .spin-btn {
+            width: 100%; background: #2d3436; color: white; border: none;
+            padding: 18px; font-size: 1.1rem; font-weight: 800; border-radius: 16px;
+            cursor: pointer; margin-top: 20px; transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 10px 20px rgba(45, 52, 54, 0.2);
+        }
+        .spin-btn:active { transform: scale(0.98); }
+        .spin-btn:disabled { background: #b2bec3; cursor: not-allowed; box-shadow: none; }
+
+        /* WHEEL (RIGHT) */
+        .wheel-wrapper {
+            position: relative;
+            width: 360px; height: 360px;
+            flex-shrink: 0;
+        }
+
+        .wheel-border {
+            width: 100%; height: 100%; border-radius: 50%;
+            border: 10px solid var(--wheel-border);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden; position: relative; background: white;
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .marker {
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+            width: 30px; height: 40px; background: var(--accent);
+            clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+            z-index: 10; filter: drop-shadow(0 4px 2px rgba(0,0,0,0.2));
+        }
+
+        .center-hub {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 60px; height: 60px; background: white; border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex;
+            align-items: center; justify-content: center; font-size: 1.8rem; z-index: 5;
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+        .result-card {
+            background: white; width: 90%; max-width: 380px; padding: 30px;
+            border-radius: 30px; text-align: center; transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        }
+        .modal-overlay.active .result-card { transform: scale(1); }
+
+        .res-icon { font-size: 3.5rem; margin-bottom: 15px; display: block; }
+        .res-title { font-size: 1.6rem; font-weight: 800; margin: 10px 0 5px 0; line-height: 1.2; color: #2d3436; }
+        .res-meta { color: #636e72; margin-bottom: 20px; font-size: 0.95rem; font-weight: 500; }
+        
+        .tags { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 25px; }
+        .tag { padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;}
+        
+        /* Tag Colors */
+        .tag.halal { background: #d4edda; color: #155724; } /* Green */
+        .tag.porkfree { background: #d1ecf1; color: #0c5460; } /* Blue */
+        .tag.nonhalal { background: #f8d7da; color: #721c24; } /* Red */
+        .tag.cat-jp { background: #fff3cd; color: #856404; } /* Yellow */
+        .tag.cat-wes { background: #e2e3e5; color: #383d41; } /* Grey */
+        .tag.cat-loc { background: #c3e6cb; color: #155724; } /* Greenish */
+
+        .btn-map {
+            background: #4285F4; color: white; text-decoration: none;
+            padding: 14px 28px; border-radius: 50px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 10px; transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3);
+        }
+        .btn-map:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4); }
+        
+        .close-btn { display: block; width: 100%; margin-top: 20px; background: none; border: none; color: #b2bec3; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+        .close-btn:hover { color: #2d3436; }
+
+        @media (max-width: 700px) {
+            .wheel-wrapper { width: 300px; height: 300px; }
+            .app-container { gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🍱 Food Decider</h1>
+        <div class="subtitle">Mid Valley & The Gardens • 300+ Options</div>
+    </header>
+
+    <div class="app-container">
+        <!-- Controls -->
+        <div class="control-panel">
+            <div class="input-group">
+                <label>Search Keyword</label>
+                <input type="text" id="searchInput" placeholder="e.g. Ramen, Burger, Coffee...">
+            </div>
+
+            <div class="filter-row">
+                <div class="input-group" style="flex:1">
+                    <label>Cuisine</label>
+                    <select id="catFilter">
+                        <option value="all">All Cuisines</option>
+                        <option value="local">🇲🇾 Malaysian / Local</option>
+                        <option value="japanese">🇯🇵 Japanese / Korean</option>
+                        <option value="chinese">🇨🇳 Chinese / Dim Sum</option>
+                        <option value="western">🍔 Western / Burger</option>
+                        <option value="beverage">☕ Coffee / Dessert</option>
+                        <option value="snack">🥨 Snacks / Light</option>
+                    </select>
+                </div>
+                <div class="input-group" style="flex:1">
+                    <label>Dietary</label>
+                    <select id="dietFilter">
+                        <option value="all">All</option>
+                        <option value="halal">Halal / Pork-Free</option>
+                        <option value="nonhalal">Non-Halal</option>
+                    </select>
+                </div>
+            </div>
+
+             <div class="input-group">
+                <label>Mall Location</label>
+                <select id="mallFilter">
+                    <option value="all">Both Malls</option>
+                    <option value="MV">Mid Valley Megamall</option>
+                    <option value="TG">The Gardens Mall</option>
+                </select>
+            </div>
+
+            <div class="badge-row">
+                <span id="countBadge">Loading Data...</span>
+                <span>v5.0</span>
+            </div>
+
+            <button class="spin-btn" id="spinBtn" onclick="spinWheel()">Find Food!</button>
+        </div>
+
+        <!-- Wheel -->
+        <div class="wheel-wrapper">
+            <div class="marker"></div>
+            <div class="wheel-border">
+                <canvas id="wheelCanvas" width="800" height="800"></canvas>
+            </div>
+            <div class="center-hub">🤤</div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="modal-overlay" id="resultModal">
+        <div class="result-card">
+            <span class="res-icon">🎉</span>
+            <div class="res-title" id="resName">Restaurant Name</div>
+            <div class="res-meta" id="resLoc">Location Info</div>
+            <div class="tags" id="resTags"></div>
+            
+            <a href="#" id="mapsLink" target="_blank" class="btn-map">
+                <span>Open Google Maps</span>
+            </a>
+            <button class="close-btn" onclick="closeModal()">Spin Again</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <script>
+        // --- DATASET V5: Categorized ---
+        // h: 'H' (Halal/Muslim Friendly), 'NH' (Non-Halal/Pork)
+        // c: 'local', 'western', 'japanese', 'chinese', 'beverage', 'snack'
+        // m: 'MV' (Mid Valley), 'TG' (The Gardens)
+        
+        const masterData = [
+            // --- FAST FOOD / WESTERN / BURGERS ---
+            {n:"4Fingers Crispy Chicken", c:"western", h:"H", m:"MV"},
+            {n:"A&W", c:"western", h:"H", m:"MV"},
+            {n:"Burger King", c:"western", h:"H", m:"MV"},
+            {n:"Carl's Jr", c:"western", h:"H", m:"MV"},
+            {n:"KFC", c:"western", h:"H", m:"MV"},
+            {n:"McDonald's", c:"western", h:"H", m:"MV"},
+            {n:"Nando's", c:"western", h:"H", m:"MV"},
+            {n:"Subway", c:"western", h:"H", m:"MV"},
+            {n:"Texas Chicken", c:"western", h:"H", m:"MV"},
+            {n:"TGI Fridays", c:"western", h:"H", m:"MV"},
+            {n:"Chili's Grill & Bar", c:"western", h:"H", m:"MV"},
+            {n:"Pizza Hut", c:"western", h:"H", m:"MV"},
+            {n:"Rightside", c:"western", h:"H", m:"MV"},
+            {n:"The Barn", c:"western", h:"NH", m:"MV"}, 
+            {n:"Antipodean", c:"western", h:"NH", m:"MV"}, 
+            {n:"Red Kettle", c:"western", h:"H", m:"TG"},
+            {n:"Alexis", c:"western", h:"H", m:"TG"}, 
+            {n:"Spag & Ju's", c:"western", h:"H", m:"MV"},
+            {n:"The Manhattan Fish Market", c:"western", h:"H", m:"MV"},
+            {n:"Snitch By The Thieves", c:"western", h:"NH", m:"TG"},
+            {n:"myBurgerLab", c:"western", h:"H", m:"MV"}, // NEW
+            {n:"KGB - Killer Gourmet Burgers", c:"western", h:"H", m:"TG"}, // NEW
+            {n:"Stuff'd", c:"western", h:"H", m:"MV"}, // NEW
+            {n:"DOME Cafe", c:"western", h:"H", m:"TG"}, // NEW
+            {n:"Coliseum Cafe", c:"western", h:"H", m:"MV"}, // NEW
+            {n:"Padi House", c:"western", h:"H", m:"MV"}, // NEW
+            {n:"Tapestry", c:"western", h:"H", m:"MV"}, // NEW
+            {n:"The Fish Bowl", c:"western", h:"H", m:"TG"}, // NEW
+            {n:"Ben's", c:"western", h:"H", m:"TG"}, // NEW
+            {n:"Fat Daddy", c:"western", h:"H", m:"MV"}, // NEW
+            {n:"MARCO", c:"western", h:"H", m:"TG"}, // NEW
+            {n:"Shucked Oyster Bar", c:"western", h:"NH", m:"TG"}, // NEW
+            {n:"LingLing LongLong", c:"western", h:"NH", m:"TG"}, // NEW
+            {n:"MST Golf Arena", c:"western", h:"NH", m:"TG"}, // NEW
+            {n:"Kubis & Kale", c:"western", h:"H", m:"MV"}, // NEW
+
+            // --- JAPANESE / KOREAN ---
+            {n:"Sukiya", c:"japanese", h:"H", m:"MV"},
+            {n:"Sushi King", c:"japanese", h:"H", m:"MV"},
+            {n:"Sushi Jiro", c:"japanese", h:"H", m:"MV"},
+            {n:"Sushi Zanmai", c:"japanese", h:"H", m:"MV"},
+            {n:"Genki Sushi", c:"japanese", h:"H", m:"TG"},
+            {n:"Rakuzen", c:"japanese", h:"H", m:"TG"},
+            {n:"Yuzu Japanese", c:"japanese", h:"H", m:"TG"},
+            {n:"Kiku-Zakura", c:"japanese", h:"H", m:"MV"},
+            {n:"Shinmapo Korean BBQ", c:"japanese", h:"NH", m:"TG"},
+            {n:"Palsaik Korean BBQ", c:"japanese", h:"NH", m:"MV"},
+            {n:"KyoChon 1991", c:"japanese", h:"H", m:"MV"},
+            {n:"DubuYo", c:"japanese", h:"H", m:"MV"},
+            {n:"MyeongDong Topokki", c:"japanese", h:"H", m:"MV"},
+            {n:"Ra-Men Bankara", c:"japanese", h:"NH", m:"MV"},
+            {n:"Ippudo Ramen", c:"japanese", h:"NH", m:"TG"},
+            {n:"Wagyu More", c:"japanese", h:"NH", m:"TG"},
+            {n:"Tanba Japanese BBQ", c:"japanese", h:"NH", m:"TG"},
+            {n:"BUSHIDO Yakitori", c:"japanese", h:"NH", m:"MV"},
+            {n:"Empire Sushi", c:"japanese", h:"H", m:"MV"},
+            {n:"Hotpot Kitchen", c:"japanese", h:"NH", m:"MV"},
+            {n:"Mala Mini Hotpot", c:"japanese", h:"H", m:"MV"},
+            {n:"Yayoi", c:"japanese", h:"NH", m:"TG"},
+            {n:"YewYewKL / Mogu", c:"japanese", h:"H", m:"TG"},
+            {n:"BBQ Town", c:"japanese", h:"H", m:"MV"}, // NEW
+            {n:"Kamakura", c:"japanese", h:"H", m:"TG"}, // NEW
+            {n:"Tamago-EN", c:"japanese", h:"NH", m:"TG"}, // NEW
+            {n:"Shojikiya", c:"japanese", h:"H", m:"MV"}, // NEW
+            {n:"SUSHIHAN", c:"japanese", h:"H", m:"MV"}, // NEW
+            {n:"Hojo", c:"japanese", h:"H", m:"TG"}, // NEW
+            {n:"ROCKU Yakiniku", c:"japanese", h:"NH", m:"TG"}, // NEW
+            {n:"eMart24", c:"japanese", h:"H", m:"MV"}, // NEW (Korean Mart/Food)
+            {n:"Ko Hyang", c:"japanese", h:"H", m:"TG"}, // NEW
+
+            // --- CHINESE / DIM SUM / HOTPOT ---
+            {n:"Din Tai Fung", c:"chinese", h:"NH", m:"TG"},
+            {n:"Dragon-i", c:"chinese", h:"NH", m:"TG"},
+            {n:"Canton-i", c:"chinese", h:"NH", m:"TG"},
+            {n:"The Han Room", c:"chinese", h:"NH", m:"TG"},
+            {n:"Paradise Dynasty", c:"chinese", h:"NH", m:"TG"},
+            {n:"Putien", c:"chinese", h:"NH", m:"TG"},
+            {n:"Xiao Long Kan Hotpot", c:"chinese", h:"NH", m:"MV"},
+            {n:"Go Noodle House", c:"chinese", h:"NH", m:"MV"},
+            {n:"Zok Noodle House", c:"chinese", h:"NH", m:"MV"},
+            {n:"Sin Man Kee", c:"chinese", h:"NH", m:"MV"},
+            {n:"Mak's Chee Wonton", c:"chinese", h:"NH", m:"MV"},
+            {n:"Koong Woh Tong", c:"chinese", h:"H", m:"MV"},
+            {n:"Purple Cane Tea Cuisine", c:"chinese", h:"H", m:"TG"},
+            {n:"Souper Tang", c:"chinese", h:"H", m:"MV"},
+            {n:"ManJoe Taiwanese", c:"chinese", h:"H", m:"TG"},
+            {n:"Jipinhe Scones", c:"chinese", h:"H", m:"MV"},
+            {n:"Sek Tong", c:"chinese", h:"NH", m:"MV"},
+            {n:"Omega Pork Noodle", c:"chinese", h:"NH", m:"MV"}, // NEW
+            {n:"House of Pok", c:"chinese", h:"NH", m:"MV"}, // NEW
+            {n:"Lucky Mala Noodle", c:"chinese", h:"NH", m:"MV"}, // NEW
+            {n:"Pulau Ketam Yong Tau Foo", c:"chinese", h:"NH", m:"MV"}, // NEW
+            {n:"Fong Lye", c:"chinese", h:"NH", m:"TG"}, // NEW
+            {n:"Beauty In The Pot", c:"chinese", h:"NH", m:"TG"}, // NEW
+            {n:"Chicken Claypot House", c:"chinese", h:"NH", m:"MV"}, // NEW
+            {n:"Village Roast Duck", c:"chinese", h:"NH", m:"TG"}, // NEW
+            {n:"YU By Oriental", c:"chinese", h:"NH", m:"TG"}, // NEW
+            {n:"Grand Taipei", c:"chinese", h:"NH", m:"MV"}, // NEW
+            {n:"Peng Chu", c:"chinese", h:"NH", m:"MV"}, // NEW
+            {n:"The Travelling Duck", c:"chinese", h:"NH", m:"TG"}, // NEW
+
+            // --- MALAYSIAN / LOCAL / THAI / VIET ---
+            {n:"Ah Cheng Laksa", c:"local", h:"H", m:"MV"},
+            {n:"Ali, Muthu & Ah Hock", c:"local", h:"H", m:"MV"},
+            {n:"Bungkus Kaw Kaw", c:"local", h:"H", m:"TG"},
+            {n:"Madam Kwan's", c:"local", h:"H", m:"MV"},
+            {n:"Little Penang Kafe", c:"local", h:"H", m:"MV"},
+            {n:"Sepiring", c:"local", h:"H", m:"MV"},
+            {n:"NALE The Nasi Lemak", c:"local", h:"H", m:"MV"},
+            {n:"Nasi Lemak Shop", c:"local", h:"H", m:"MV"},
+            {n:"Oriental Kopi", c:"local", h:"H", m:"MV"},
+            {n:"Original Penang Kayu", c:"local", h:"H", m:"MV"},
+            {n:"PappaRich", c:"local", h:"H", m:"TG"},
+            {n:"Sedap Sedap", c:"local", h:"H", m:"MV"},
+            {n:"The Chicken Rice Shop", c:"local", h:"H", m:"MV"},
+            {n:"UPEH", c:"local", h:"H", m:"MV"},
+            {n:"MyIpoh", c:"local", h:"H", m:"MV"},
+            {n:"Nanyang Cafe", c:"local", h:"NH", m:"MV"},
+            {n:"Kim Gary", c:"local", h:"NH", m:"MV"},
+            {n:"Lim Fried Chicken", c:"local", h:"H", m:"MV"},
+            {n:"Penang Flavours", c:"local", h:"H", m:"MV"},
+            {n:"Absolute Thai", c:"local", h:"H", m:"TG"},
+            {n:"Amarin Heavenly Thai", c:"local", h:"H", m:"MV"},
+            {n:"Mr Tuk Tuk", c:"local", h:"H", m:"TG"},
+            {n:"Boat Noodle", c:"local", h:"H", m:"MV"},
+            {n:"Pho Vietz", c:"local", h:"NH", m:"MV"},
+            {n:"An Viet", c:"local", h:"NH", m:"TG"},
+            {n:"Childhood", c:"local", h:"H", m:"MV"}, // NEW
+            {n:"Rich Kopitiam", c:"local", h:"H", m:"MV"}, // NEW
+            {n:"BananaBro", c:"local", h:"H", m:"MV"}, // NEW
+            {n:"Nyonya Colors", c:"local", h:"H", m:"TG"}, // NEW
+            {n:"PopCorn Food Hall", c:"local", h:"H", m:"MV"}, // NEW
+
+            // --- COFFEE / DESSERT / BEVERAGE ---
+            {n:"Starbucks Reserve", c:"beverage", h:"H", m:"TG"},
+            {n:"Coffee Bean & Tea Leaf", c:"beverage", h:"H", m:"MV"},
+            {n:"ZUS Coffee", c:"beverage", h:"H", m:"MV"},
+            {n:"GIGI Coffee", c:"beverage", h:"H", m:"MV"},
+            {n:"HWC Coffee", c:"beverage", h:"H", m:"MV"},
+            {n:"Kenangan Coffee", c:"beverage", h:"H", m:"MV"},
+            {n:"San Francisco Coffee", c:"beverage", h:"H", m:"TG"},
+            {n:"Tealive Plus", c:"beverage", h:"H", m:"MV"},
+            {n:"Gong Cha", c:"beverage", h:"H", m:"TG"},
+            {n:"KOI The", c:"beverage", h:"H", m:"TG"},
+            {n:"Chagee", c:"beverage", h:"H", m:"TG"},
+            {n:"Boost Juice", c:"beverage", h:"H", m:"MV"},
+            {n:"Llaollao", c:"beverage", h:"H", m:"MV"},
+            {n:"Baskin Robbins", c:"beverage", h:"H", m:"MV"},
+            {n:"Haagen Dazs", c:"beverage", h:"H", m:"MV"},
+            {n:"Inside Scoop", c:"beverage", h:"H", m:"TG"},
+            {n:"Secret Recipe", c:"beverage", h:"H", m:"MV"},
+            {n:"Paris Baguette", c:"beverage", h:"H", m:"MV"},
+            {n:"Komugi", c:"beverage", h:"H", m:"MV"},
+            {n:"Lavender", c:"beverage", h:"H", m:"MV"},
+            {n:"BreadStory", c:"beverage", h:"H", m:"TG"},
+            {n:"Christine's Bakery", c:"beverage", h:"H", m:"MV"},
+            {n:"Halla Holla", c:"beverage", h:"H", m:"MV"},
+            {n:"Yole", c:"beverage", h:"H", m:"MV"},
+            {n:"Soyya", c:"beverage", h:"H", m:"MV"},
+            {n:"Bean Factory", c:"beverage", h:"H", m:"MV"},
+            {n:"Cha Tra Mue", c:"beverage", h:"H", m:"MV"},
+            {n:"Beutea", c:"beverage", h:"H", m:"MV"},
+            {n:"Machi Machi", c:"beverage", h:"H", m:"TG"},
+            {n:"HEYTEA", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Chateraise", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Venchi", c:"beverage", h:"H", m:"TG"}, // NEW
+            {n:"Nadeje", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Snowflake", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Creme de la Creme", c:"beverage", h:"H", m:"TG"}, // NEW
+            {n:"Udders Ice Cream", c:"beverage", h:"NH", m:"TG"}, // NEW (Alcoholic flavors)
+            {n:"Juice Works", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"HeLo Moo!", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Shantea", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Squeezby", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Just Good Coffee", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Eight Ounce Coffee", c:"beverage", h:"H", m:"TG"}, // NEW
+            {n:"Nespresso", c:"beverage", h:"H", m:"TG"}, // NEW
+            {n:"TWG Tea", c:"beverage", h:"H", m:"TG"}, // NEW
+            {n:"Yomie's Rice Yogurt", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Sugirl Desserts", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Vanilla Mille Crepe", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Lapisan Patisserie", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"POBBYICE", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Yogurt Factory", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Nononsense Coffee", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"B.O.D", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"dipndip", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"Lung Ngen Coffee", c:"beverage", h:"H", m:"MV"}, // NEW
+            {n:"ShuYi Grass Jelly", c:"beverage", h:"H", m:"MV"}, // NEW
+            
+            // --- SNACKS / BAKERY ---
+            {n:"Auntie Anne's", c:"snack", h:"H", m:"MV"},
+            {n:"Famous Amos", c:"snack", h:"H", m:"MV"},
+            {n:"Hot & Roll", c:"snack", h:"H", m:"MV"},
+            {n:"Shihlin Taiwan Snacks", c:"snack", h:"H", m:"MV"},
+            {n:"Eggette Lab", c:"snack", h:"H", m:"MV"},
+            {n:"Garrett Popcorn", c:"snack", h:"H", m:"MV"},
+            {n:"Ipoh Kacang Putih", c:"snack", h:"H", m:"MV"},
+            {n:"Mahnaz Food", c:"snack", h:"H", m:"MV"},
+            {n:"Oloiya", c:"snack", h:"NH", m:"TG"},
+            {n:"Bee Cheng Hiang", c:"snack", h:"NH", m:"MV"},
+            {n:"I Love Yoo!", c:"snack", h:"H", m:"MV"},
+            {n:"Dunkin'", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Cinnabon", c:"snack", h:"H", m:"TG"}, // NEW
+            {n:"Beard Papa's", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Ben's Cookies", c:"snack", h:"H", m:"TG"}, // NEW
+            {n:"Barcook", c:"snack", h:"H", m:"TG"}, // NEW
+            {n:"Flaaah The Bakery", c:"snack", h:"H", m:"TG"}, // NEW
+            {n:"Yin's Sourdough", c:"snack", h:"H", m:"TG"}, // NEW
+            {n:"The Founders Bakery", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Finest Bake", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Good Chen", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Jungle House", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Herbal Farmer", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Taimal Herbs", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"MBG FruitShop", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Yong Sheng", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Signature Market", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"MiX Store", c:"snack", h:"NH", m:"MV"}, // NEW (Imported snacks/alcohol)
+            {n:"Beryl's", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Royce Chocolate", c:"snack", h:"H", m:"TG"}, // NEW
+            {n:"Laderach", c:"snack", h:"H", m:"TG"}, // NEW
+            {n:"Homi Curry Puff", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Chonky Cookies", c:"snack", h:"H", m:"TG"}, // NEW
+            {n:"APOLLO", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Happy Potato", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Sisters Crispy Popiah", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Krispy Kreme", c:"snack", h:"H", m:"MV"}, // NEW
+            {n:"Delectable Treats", c:"snack", h:"H", m:"TG"} // NEW
+        ];
+
+        let activeData = [];
+        let rotation = 0;
+        let isSpinning = false;
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const colors = ['#a29bfe', '#ff7675', '#55efc4', '#74b9ff', '#ffeaa7', '#fab1a0'];
+
+        function init() {
+            filterData();
+            // Event Listeners
+            ['searchInput', 'catFilter', 'dietFilter', 'mallFilter'].forEach(id => {
+                document.getElementById(id).addEventListener('input', filterData);
+            });
+            window.addEventListener('resize', () => drawWheel());
+        }
+
+        function filterData() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const cat = document.getElementById('catFilter').value;
+            const diet = document.getElementById('dietFilter').value;
+            const mall = document.getElementById('mallFilter').value;
+
+            activeData = masterData.filter(item => {
+                // Search
+                if (search && !item.n.toLowerCase().includes(search)) return false;
+                
+                // Category
+                if (cat !== 'all' && item.c !== cat) return false;
+                
+                // Mall
+                if (mall !== 'all' && item.m !== mall) return false;
+                
+                // Diet
+                if (diet === 'halal') {
+                    // Show Halal AND Pork Free
+                    if (item.h === 'NH') return false;
+                }
+                if (diet === 'nonhalal') {
+                    if (item.h !== 'NH') return false;
+                }
+                
+                return true;
+            });
+
+            updateUI();
+        }
+
+        function updateUI() {
+            const count = activeData.length;
+            const badge = document.getElementById('countBadge');
+            const btn = document.getElementById('spinBtn');
+
+            badge.innerText = `${count} Places`;
+            
+            if (count === 0) {
+                btn.disabled = true;
+                btn.innerText = "No Matches";
+                btn.style.background = "#b2bec3";
+                drawWheel(true);
+            } else {
+                btn.disabled = false;
+                btn.innerText = `Spin (${count})`;
+                btn.style.background = "#2d3436";
+                drawWheel();
+            }
+        }
+
+        function drawWheel(isEmpty = false) {
+            const num = isEmpty ? 1 : activeData.length;
+            const arc = (2 * Math.PI) / num;
+            const r = canvas.width / 2;
+
+            ctx.clearRect(0,0,800,800);
+            ctx.save();
+            ctx.translate(r, r);
+
+            for (let i = 0; i < num; i++) {
+                const angle = i * arc;
+                ctx.beginPath();
+                ctx.moveTo(0,0);
+                ctx.arc(0,0, r, angle, angle + arc);
+                ctx.fillStyle = isEmpty ? '#dfe6e9' : colors[i % colors.length];
+                ctx.fill();
+                ctx.stroke();
+
+                // Text Labels (Only if not too crowded)
+                if (!isEmpty && num <= 60) {
+                    ctx.save();
+                    ctx.rotate(angle + arc/2);
+                    ctx.textAlign = "right";
+                    ctx.fillStyle = "#2d3436";
+                    ctx.font = "bold 14px Inter";
+                    let text = activeData[i].n;
+                    if (text.length > 18) text = text.substring(0,16) + "..";
+                    ctx.fillText(text, r - 30, 5);
+                    ctx.restore();
+                }
+            }
+            ctx.restore();
+        }
+
+        function spinWheel() {
+            if (isSpinning || activeData.length === 0) return;
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+
+            const minSpins = 5;
+            const extraDeg = Math.random() * 360;
+            const totalDeg = (minSpins * 360) + extraDeg;
+            
+            rotation += totalDeg;
+            
+            canvas.style.transition = "transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)";
+            canvas.style.transform = `rotate(-${rotation}deg)`;
+
+            setTimeout(() => {
+                isSpinning = false;
+                document.getElementById('spinBtn').disabled = false;
+                showResult(rotation);
+            }, 4000);
+        }
+
+        function showResult(deg) {
+            const sliceDeg = 360 / activeData.length;
+            const normalized = deg % 360;
+            // Adjust for top pointer (which is at 270deg visually)
+            // In CSS transform rotate(0), the 0 angle is at 3 o'clock.
+            // 270 (-90) is 12 o'clock.
+            const offset = (360 - normalized + 270) % 360; // Adjusted offset logic
+            // Actually, easiest way is: Index 0 is at 0-arc.
+            const index = Math.floor((360 - (normalized % 360)) / sliceDeg) % activeData.length;
+
+            const winner = activeData[index];
+            
+            // Populate Modal
+            document.getElementById('resName').innerText = winner.n;
+            
+            // Mall Text
+            let mallName = winner.m === 'MV' ? 'Mid Valley Megamall' : 'The Gardens Mall';
+            document.getElementById('resLoc').innerText = mallName;
+
+            // Tags
+            const tagBox = document.getElementById('resTags');
+            tagBox.innerHTML = '';
+
+            // Diet Tag
+            const t1 = document.createElement('span');
+            t1.className = 'tag';
+            if(winner.h === 'H') {
+                t1.classList.add('halal');
+                t1.innerText = "Halal / Pork-Free";
+            } else {
+                t1.classList.add('nonhalal');
+                t1.innerText = "Non-Halal";
+            }
+            tagBox.appendChild(t1);
+
+            // Cuisine Tag
+            const t2 = document.createElement('span');
+            t2.className = 'tag';
+            if(winner.c === 'japanese') { t2.classList.add('cat-jp'); t2.innerText = "Japanese / Korean"; }
+            else if(winner.c === 'western') { t2.classList.add('cat-wes'); t2.innerText = "Western"; }
+            else if(winner.c === 'local') { t2.classList.add('cat-loc'); t2.innerText = "Malaysian"; }
+            else if(winner.c === 'chinese') { t2.classList.add('cat-jp'); t2.innerText = "Chinese"; } // re-use style
+            else { t2.style.background='#dfe6e9'; t2.innerText = winner.c.toUpperCase(); }
+            tagBox.appendChild(t2);
+
+            // Map Link
+            const q = encodeURIComponent(`${winner.n} ${mallName} Kuala Lumpur`);
+            document.getElementById('mapsLink').href = `https://www.google.com/maps/search/?api=1&query=${q}`;
+
+            // Show
+            document.getElementById('resultModal').classList.add('active');
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
+
+        function closeModal() {
+            document.getElementById('resultModal').classList.remove('active');
+        }
+
+        init();
+    </script>
+</body>
+</html>
