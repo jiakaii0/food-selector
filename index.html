@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MV Food Decider v7.0</title>
+    <title>MV Food Decider v7.2</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -62,7 +62,8 @@
 
         .input-group { margin-bottom: 20px; }
         .input-group label {
-            display: block; font-size: 0.7rem; font-weight: 800; 
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.7rem; font-weight: 800; 
             color: #b2bec3; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
         }
 
@@ -72,6 +73,33 @@
             color: #2d3436; font-weight: 600; transition: 0.2s; appearance: none;
         }
         select:focus, input[type="text"]:focus { border-color: var(--accent); outline: none; background: #fff; }
+
+        /* --- CUSTOM TEXT AREA --- */
+        textarea {
+            width: 100%; 
+            padding: 14px; 
+            border: 2px solid #fab1a0; /* Distinct border color */
+            border-radius: 12px; 
+            font-size: 0.95rem; 
+            background: #fffafa; 
+            color: #2d3436; 
+            font-weight: 600; 
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s; 
+            
+            /* Auto-expand logic */
+            resize: none; 
+            overflow: hidden;
+            min-height: 52px; /* Height for single line */
+            max-height: 300px; /* Cap it so it doesn't take whole screen */
+            line-height: 1.5;
+        }
+        textarea:focus { border-color: var(--accent); outline: none; background: #fff; }
+        textarea::placeholder { color: #b2bec3; font-weight: 400; }
+
+        .clear-btn {
+            font-size: 0.65rem; color: var(--accent); cursor: pointer; text-decoration: underline;
+        }
 
         /* --- DUAL RANGE SLIDER STYLES --- */
         .slider-wrapper {
@@ -225,6 +253,7 @@
         /* Tag Colors */
         .tag.halal { background: #d4edda; color: #155724; }
         .tag.nonhalal { background: #f8d7da; color: #721c24; }
+        .tag.custom-tag { background: #e84393; color: white; }
         
         /* Price Tags */
         .tag.p1 { background: #ddfbf5; color: var(--p1); } 
@@ -265,6 +294,7 @@
     <div class="app-container">
         <!-- Controls -->
         <div class="control-panel">
+            
             <div class="input-group">
                 <label>Search Keyword</label>
                 <input type="text" id="searchInput" placeholder="e.g. Ramen, Burger, Coffee...">
@@ -272,7 +302,7 @@
 
             <div class="filter-row">
                 <div class="input-group" style="flex:1">
-                    <label>Cuisine (Select One)</label>
+                    <label>Cuisine</label>
                     <select id="catFilter">
                         <option value="all">All Cuisines</option>
                         <option value="local">🇲🇾 Local</option>
@@ -331,12 +361,22 @@
                 </div>
             </div>
 
+            <!-- CUSTOM INPUT (MOVED TO BOTTOM) -->
+            <div class="input-group" style="margin-top: 25px; border-top: 1px solid #edf2f7; padding-top: 20px;">
+                <label>
+                    <span>Custom List Mode (Overrides Above)</span>
+                    <span class="clear-btn" onclick="clearCustomInput()">Clear</span>
+                </label>
+                <!-- Removed rows="3", handled by JS now -->
+                <textarea id="customInput" placeholder="Type options here (one per line)"></textarea>
+            </div>
+
             <div class="badge-row">
                 <div>
                     <span id="countBadge">Loading...</span>
                     <span class="reset-link" id="resetBtn" onclick="resetExclusions()">Reset Ignore List</span>
                 </div>
-                <span>v7.0</span>
+                <span>v7.2</span>
             </div>
 
             <button class="spin-btn" id="spinBtn" onclick="spinWheel()">Find Food!</button>
@@ -372,8 +412,7 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <script>
-        // --- DATASET V7.0: INTEGER AVERAGES FOR SLIDER ---
-        // avg: Average Price Per Pax (RM)
+        // --- DATASET V7.2 ---
         
         const masterData = [
             // FAST FOOD / WESTERN
@@ -625,14 +664,23 @@
         const track = document.getElementById("sliderTrack");
         const minGap = 5;
 
+        // Custom Input
+        const customInput = document.getElementById('customInput');
+
         function init() {
             filterData();
             
             // Standard Filters
-            ['searchInput', 'catFilter', 'dietFilter', 'mallFilter'].forEach(id => {
+            ['searchInput', 'catFilter', 'dietFilter', 'mallFilter', 'customInput'].forEach(id => {
                 document.getElementById(id).addEventListener('input', filterData);
             });
             
+            // Auto Resize Textarea
+            customInput.addEventListener('input', function() {
+                this.style.height = 'auto'; // Reset height
+                this.style.height = (this.scrollHeight) + 'px'; // Set to content height
+            });
+
             // Exclude checkboxes
             document.querySelectorAll('.exclude-cb').forEach(cb => {
                 cb.addEventListener('change', filterData);
@@ -644,6 +692,12 @@
 
             window.addEventListener('resize', () => drawWheel());
             fillTrack();
+        }
+
+        function clearCustomInput() {
+            customInput.value = "";
+            customInput.style.height = 'auto'; // Reset height visual
+            filterData();
         }
 
         // --- SLIDER LOGIC ---
@@ -671,6 +725,30 @@
         }
 
         function filterData() {
+            // 1. CHECK FOR CUSTOM INPUT FIRST
+            const customText = customInput.value;
+            const customLines = customText.split('\n').filter(line => line.trim() !== '');
+
+            if (customLines.length > 0) {
+                // CUSTOM MODE: Create objects that mimic the masterData structure
+                activeData = customLines.map(name => ({
+                    n: name.trim(),
+                    c: 'custom', 
+                    h: '?', 
+                    m: 'Custom', 
+                    avg: 0
+                }));
+                
+                // Exclude logic for custom items if user spun them before and clicked "remove"
+                if (excludedItems.length > 0) {
+                    activeData = activeData.filter(item => !excludedItems.includes(item.n));
+                }
+
+                updateUI(true); // pass true to indicate custom mode
+                return; // Stop here, ignore other filters
+            }
+
+            // 2. STANDARD DB MODE
             const search = document.getElementById('searchInput').value.toLowerCase();
             const cat = document.getElementById('catFilter').value;
             const diet = document.getElementById('dietFilter').value;
@@ -679,59 +757,43 @@
             const minPrice = parseInt(slider1.value);
             const maxPrice = parseInt(slider2.value);
 
-            // Get Excluded Categories
             const excludedCats = Array.from(document.querySelectorAll('.exclude-cb:checked')).map(cb => cb.value);
 
             activeData = masterData.filter(item => {
-                // 1. Check Exclusion List (Specific Items)
                 if (excludedItems.includes(item.n)) return false;
-
-                // 2. Check Excluded Cuisines (Only if "All Cuisines" is selected)
                 if (cat === 'all' && excludedCats.includes(item.c)) return false;
-
-                // 3. Search
                 if (search && !item.n.toLowerCase().includes(search)) return false;
-                
-                // 4. Category Dropdown
                 if (cat !== 'all' && item.c !== cat) return false;
-                
-                // 5. Mall
                 if (mall !== 'all' && item.m !== mall) return false;
-                
-                // 6. Price (Slider Logic)
                 if (item.avg < minPrice || item.avg > maxPrice) return false;
-                
-                // 7. Diet
-                if (diet === 'halal') {
-                    if (item.h === 'NH') return false;
-                }
-                if (diet === 'nonhalal') {
-                    if (item.h !== 'NH') return false;
-                }
+                if (diet === 'halal' && item.h === 'NH') return false;
+                if (diet === 'nonhalal' && item.h !== 'NH') return false;
                 
                 return true;
             });
 
-            updateUI();
+            updateUI(false);
         }
 
-        function updateUI() {
+        function updateUI(isCustomMode) {
             const count = activeData.length;
             const badge = document.getElementById('countBadge');
             const btn = document.getElementById('spinBtn');
             const resetBtn = document.getElementById('resetBtn');
 
+            let label = isCustomMode ? "Custom Options" : "Options";
+            
             if (excludedItems.length > 0) {
-                badge.innerText = `${count} Options (${excludedItems.length} Hidden)`;
+                badge.innerText = `${count} ${label} (${excludedItems.length} Hidden)`;
                 resetBtn.style.display = "inline";
             } else {
-                badge.innerText = `${count} Options`;
+                badge.innerText = `${count} ${label}`;
                 resetBtn.style.display = "none";
             }
             
             if (count === 0) {
                 btn.disabled = true;
-                btn.innerText = excludedItems.length > 0 ? "All Ignored / No Match" : "No Matches";
+                btn.innerText = excludedItems.length > 0 ? "All Ignored / No Match" : "Add options to spin";
                 btn.style.background = "#b2bec3";
                 drawWheel(true);
             } else {
@@ -810,31 +872,39 @@
             currentWinnerName = winner.n;
             
             document.getElementById('resName').innerText = winner.n;
-            let mallName = winner.m === 'MV' ? 'Mid Valley Megamall' : 'The Gardens Mall';
+            
+            // Location Text Logic
+            let mallName = "";
+            if (winner.m === 'MV') mallName = 'Mid Valley Megamall';
+            else if (winner.m === 'TG') mallName = 'The Gardens Mall';
+            else mallName = 'Custom Selection';
+            
             document.getElementById('resLoc').innerText = mallName;
 
             const tagBox = document.getElementById('resTags');
             tagBox.innerHTML = '';
 
-            // Price Tag logic for display (using average price)
-            const tP = document.createElement('span');
-            tP.className = 'tag';
-            if (winner.avg <= 15) { tP.classList.add('p1'); tP.innerText = "Budget"; }
-            else if (winner.avg <= 35) { tP.classList.add('p2'); tP.innerText = "Casual"; }
-            else if (winner.avg <= 60) { tP.classList.add('p3'); tP.innerText = "Restaurant"; }
-            else { tP.classList.add('p4'); tP.innerText = "Premium"; }
-            tagBox.appendChild(tP);
+            // If it's a real DB item with price
+            if (winner.avg > 0) {
+                const tP = document.createElement('span');
+                tP.className = 'tag';
+                if (winner.avg <= 15) { tP.classList.add('p1'); tP.innerText = "Budget"; }
+                else if (winner.avg <= 35) { tP.classList.add('p2'); tP.innerText = "Casual"; }
+                else if (winner.avg <= 60) { tP.classList.add('p3'); tP.innerText = "Restaurant"; }
+                else { tP.classList.add('p4'); tP.innerText = "Premium"; }
+                tagBox.appendChild(tP);
 
-            const t1 = document.createElement('span');
-            t1.className = 'tag';
-            if(winner.h === 'H') {
-                t1.classList.add('halal');
-                t1.innerText = "Halal / Pork-Free";
-            } else {
-                t1.classList.add('nonhalal');
-                t1.innerText = "Non-Halal";
+                const t1 = document.createElement('span');
+                t1.className = 'tag';
+                if(winner.h === 'H') {
+                    t1.classList.add('halal');
+                    t1.innerText = "Halal / Pork-Free";
+                } else {
+                    t1.classList.add('nonhalal');
+                    t1.innerText = "Non-Halal";
+                }
+                tagBox.appendChild(t1);
             }
-            tagBox.appendChild(t1);
 
             const t2 = document.createElement('span');
             t2.className = 'tag';
@@ -842,10 +912,17 @@
             else if(winner.c === 'western') { t2.classList.add('cat-wes'); t2.innerText = "Western"; }
             else if(winner.c === 'local') { t2.classList.add('cat-loc'); t2.innerText = "Local"; }
             else if(winner.c === 'chinese') { t2.classList.add('cat-jp'); t2.innerText = "Chinese"; }
+            else if(winner.c === 'custom') { t2.classList.add('custom-tag'); t2.innerText = "Custom"; }
             else { t2.style.background='#dfe6e9'; t2.innerText = winner.c.toUpperCase(); }
             tagBox.appendChild(t2);
 
-            const q = encodeURIComponent(`${winner.n} ${mallName} Kuala Lumpur`);
+            let q = "";
+            if(winner.m === 'Custom') {
+                 q = encodeURIComponent(`${winner.n} Food Kuala Lumpur`);
+            } else {
+                 q = encodeURIComponent(`${winner.n} ${mallName} Kuala Lumpur`);
+            }
+            
             document.getElementById('mapsLink').href = `https://www.google.com/maps/search/?api=1&query=${q}`;
 
             document.getElementById('resultModal').classList.add('active');
